@@ -1,17 +1,30 @@
 import sqlite3
 import os
+import threading
 from config import DATABASE_PATH
 from rbac import DEFAULT_ROLES, DEFAULT_PERMISSIONS, DEFAULT_ROLE_PERMISSIONS
 
-_connection = None
+# Per-thread connection pool.
+# Passenger WSGI + a2wsgi's ThreadPoolExecutor each run in different OS threads.
+# A single global connection accessed from multiple threads causes SQLite to
+# deadlock/hang even with check_same_thread=False, because the same connection
+# object is not safe for truly concurrent use.  threading.local gives every
+# thread its own independent connection and eliminates the hang.
+_thread_local = threading.local()
+
 
 def get_db():
-    global _connection
-    if _connection is None:
-        os.makedirs(os.path.dirname(DATABASE_PATH), exist_ok=True)
-        _connection = sqlite3.connect(DATABASE_PATH, check_same_thread=False)
-        _connection.row_factory = sqlite3.Row
-    return _connection
+    conn = getattr(_thread_local, "connection", None)
+    if conn is None:
+        database_dir = os.path.dirname(DATABASE_PATH)
+        if database_dir:
+            os.makedirs(database_dir, exist_ok=True)
+        conn = sqlite3.connect(DATABASE_PATH, check_same_thread=False, timeout=5)
+        conn.row_factory = sqlite3.Row
+        conn.execute("PRAGMA journal_mode=WAL")
+        conn.execute("PRAGMA busy_timeout = 3000")
+        _thread_local.connection = conn
+    return conn
 
 def init_db():
     conn = get_db()
@@ -393,7 +406,24 @@ def init_db():
     if "output_mode" not in bot_columns:
         cursor.execute("ALTER TABLE bots ADD COLUMN output_mode TEXT DEFAULT 'text'")
 
+    if "updated_at" not in bot_columns:
+        cursor.execute("ALTER TABLE bots ADD COLUMN updated_at TIMESTAMP")
+
+    if "configuration" not in bot_columns:
+        cursor.execute("ALTER TABLE bots ADD COLUMN configuration TEXT DEFAULT '{}'")
+
+    if "avatar_url" not in bot_columns:
+        cursor.execute("ALTER TABLE bots ADD COLUMN avatar_url TEXT")
+
+    if "welcome_message" not in bot_columns:
+        cursor.execute("ALTER TABLE bots ADD COLUMN welcome_message TEXT")
+
+    if "fallback_response" not in bot_columns:
+        cursor.execute("ALTER TABLE bots ADD COLUMN fallback_response TEXT DEFAULT 'I am not sure how to respond to that.'")
+
     cursor.execute("UPDATE bots SET output_mode = 'text' WHERE output_mode IS NULL OR output_mode = ''")
+    cursor.execute("UPDATE bots SET configuration = '{}' WHERE configuration IS NULL OR configuration = ''")
+    cursor.execute("UPDATE bots SET updated_at = COALESCE(created_at, CURRENT_TIMESTAMP) WHERE updated_at IS NULL")
 
     # Ensure every user has at least one role
     cursor.execute("SELECT id, email FROM users")
@@ -457,7 +487,7 @@ def init_db():
     conn.commit()
 
 def close_db():
-    global _connection
-    if _connection:
-        _connection.close()
-        _connection = None
+    conn = getattr(_thread_local, "connection", None)
+    if conn:
+        conn.close()
+        _thread_local.connection = None
