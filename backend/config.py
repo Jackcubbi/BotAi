@@ -4,7 +4,7 @@ from dotenv import load_dotenv
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
 # Load environment variables from .env file
-load_dotenv()
+load_dotenv(dotenv_path=os.path.join(BASE_DIR, ".env"))
 
 # Server Configuration
 PORT = int(os.getenv("PORT", "8080"))
@@ -19,7 +19,14 @@ ALLOWED_ORIGINS = os.getenv("ALLOWED_ORIGINS", "http://localhost:5173,http://loc
 CORS_ORIGINS = [origin.strip() for origin in ALLOWED_ORIGINS.split(",")]
 
 # Database Configuration
-DATABASE_PATH = os.getenv("DATABASE_PATH", os.path.join(BASE_DIR, "data", "ecommerce.db"))
+_raw_database_path = os.getenv("DATABASE_PATH", os.path.join("data", "ecommerce.db")).strip()
+
+# cPanel envs sometimes provide absolute Linux paths without leading slash (e.g. home/user/app/data.db)
+if _raw_database_path.startswith("home/"):
+	_raw_database_path = os.sep + _raw_database_path
+
+DATABASE_PATH = _raw_database_path if os.path.isabs(_raw_database_path) else os.path.join(BASE_DIR, _raw_database_path)
+DATABASE_PATH = os.path.realpath(DATABASE_PATH)
 
 # OpenAI Configuration
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
