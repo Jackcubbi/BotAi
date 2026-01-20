@@ -124,10 +124,12 @@ async def get_bots(
         is_public=is_public
     )
 
-    # Add ratings to each bot
+    bot_ids = [bot["id"] for bot in bots]
+    rating_stats = BotReviewModel.get_rating_stats_for_bots(bot_ids)
     for bot in bots:
-        bot["average_rating"] = BotReviewModel.get_average_rating(bot["id"])
-        bot["total_reviews"] = len(BotReviewModel.get_by_bot(bot["id"]))
+        stat = rating_stats.get(bot["id"], {"average_rating": 0.0, "total_reviews": 0.0})
+        bot["average_rating"] = float(stat.get("average_rating", 0.0))
+        bot["total_reviews"] = int(stat.get("total_reviews", 0.0))
 
     total = BotModel.count(category=category, is_public=is_public)
 
@@ -156,10 +158,12 @@ async def get_my_bots(
         creator_id=current_user["id"]
     )
 
-    # Add ratings to each bot
+    bot_ids = [bot["id"] for bot in bots]
+    rating_stats = BotReviewModel.get_rating_stats_for_bots(bot_ids)
     for bot in bots:
-        bot["average_rating"] = BotReviewModel.get_average_rating(bot["id"])
-        bot["total_reviews"] = len(BotReviewModel.get_by_bot(bot["id"]))
+        stat = rating_stats.get(bot["id"], {"average_rating": 0.0, "total_reviews": 0.0})
+        bot["average_rating"] = float(stat.get("average_rating", 0.0))
+        bot["total_reviews"] = int(stat.get("total_reviews", 0.0))
 
     total = BotModel.count()
 
@@ -181,27 +185,36 @@ async def get_marketplace_bots(
 ):
     """Get public bots available in marketplace"""
     offset = (page - 1) * limit
+    try:
+        bots = BotModel.get_marketplace_fast(
+            limit=limit,
+            offset=offset,
+            category=category,
+        )
 
-    bots = BotModel.get_all(
-        limit=limit,
-        offset=offset,
-        category=category,
-        is_public=True
-    )
+        bot_ids = [bot["id"] for bot in bots]
+        rating_stats = BotReviewModel.get_rating_stats_for_bots(bot_ids)
+        for bot in bots:
+            stat = rating_stats.get(bot["id"], {"average_rating": 0.0, "total_reviews": 0.0})
+            bot["average_rating"] = float(stat.get("average_rating", 0.0))
+            bot["total_reviews"] = int(stat.get("total_reviews", 0.0))
 
-    # Add ratings to each bot
-    for bot in bots:
-        bot["average_rating"] = BotReviewModel.get_average_rating(bot["id"])
-        bot["total_reviews"] = len(BotReviewModel.get_by_bot(bot["id"]))
+        total = BotModel.count(category=category, is_public=True)
 
-    total = BotModel.count(category=category, is_public=True)
-
-    return {
-        "bots": bots,
-        "total": total,
-        "page": page,
-        "limit": limit
-    }
+        return {
+            "bots": bots,
+            "total": total,
+            "page": page,
+            "limit": limit
+        }
+    except Exception as e:
+        print(f"Marketplace endpoint error: {e}")
+        return {
+            "bots": [],
+            "total": 0,
+            "page": page,
+            "limit": limit
+        }
 
 
 @router.get("/{bot_id:int}", response_model=BotResponse)
