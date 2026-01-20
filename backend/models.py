@@ -595,6 +595,24 @@ class OrderModel:
 
 class BotModel:
     @staticmethod
+    def _normalize_bot_record(bot: Dict[str, Any]) -> Dict[str, Any]:
+        normalized = dict(bot)
+        normalized["name"] = normalized.get("name") or ""
+        normalized["description"] = normalized.get("description") or ""
+        normalized["category"] = normalized.get("category") or "Other"
+        normalized["system_prompt"] = normalized.get("system_prompt") or ""
+        normalized["ai_model"] = normalized.get("ai_model") or "gpt-4.1-mini"
+        normalized["output_mode"] = normalized.get("output_mode") or "text"
+        normalized["temperature"] = float(normalized.get("temperature") or 0.7)
+        normalized["max_tokens"] = int(normalized.get("max_tokens") or 500)
+        normalized["price"] = float(normalized.get("price") or 0.0)
+        normalized["is_public"] = bool(normalized.get("is_public"))
+        normalized["total_conversations"] = int(normalized.get("total_conversations") or 0)
+        normalized["created_at"] = str(normalized.get("created_at") or "")
+        normalized["updated_at"] = str(normalized.get("updated_at") or normalized["created_at"])
+        return normalized
+
+    @staticmethod
     def create(
         name: str,
         description: str,
@@ -647,7 +665,7 @@ class BotModel:
         if not row:
             return None
 
-        bot = dict(row)
+        bot = BotModel._normalize_bot_record(dict(row))
         parsed_configuration = _parse_configuration(bot.get("configuration"))
         bot["configuration"] = _sanitize_configuration_for_response(parsed_configuration, include_secrets=include_secrets)
         return bot
@@ -691,7 +709,37 @@ class BotModel:
 
         bots = []
         for row in cursor.fetchall():
-            bot = dict(row)
+            bot = BotModel._normalize_bot_record(dict(row))
+            parsed_configuration = _parse_configuration(bot.get("configuration"))
+            bot["configuration"] = _sanitize_configuration_for_response(parsed_configuration, include_secrets=False)
+            bots.append(bot)
+
+        return bots
+
+    @staticmethod
+    def get_marketplace_fast(
+        limit: int = 20,
+        offset: int = 0,
+        category: Optional[str] = None,
+    ) -> List[Dict[str, Any]]:
+        conn = get_db()
+        cursor = conn.cursor()
+
+        query = "SELECT * FROM bots WHERE is_public = 1"
+        params: List[Any] = []
+
+        if category:
+            query += " AND category = ?"
+            params.append(category)
+
+        query += " ORDER BY created_at DESC LIMIT ? OFFSET ?"
+        params.extend([limit, offset])
+
+        cursor.execute(query, params)
+
+        bots = []
+        for row in cursor.fetchall():
+            bot = BotModel._normalize_bot_record(dict(row))
             parsed_configuration = _parse_configuration(bot.get("configuration"))
             bot["configuration"] = _sanitize_configuration_for_response(parsed_configuration, include_secrets=False)
             bots.append(bot)
@@ -1109,6 +1157,36 @@ class BotReviewModel:
         except Exception as e:
             print(f"Error reading average rating: {e}")
             return 0.0
+
+    @staticmethod
+    def get_rating_stats_for_bots(bot_ids: List[int]) -> Dict[int, Dict[str, float]]:
+        if not bot_ids:
+            return {}
+
+        conn = get_db()
+        cursor = conn.cursor()
+        try:
+            placeholders = ",".join(["?"] * len(bot_ids))
+            cursor.execute(
+                f"""
+                SELECT bot_id, COUNT(*) as total_reviews, AVG(rating) as avg_rating
+                FROM bot_reviews
+                WHERE bot_id IN ({placeholders})
+                GROUP BY bot_id
+                """,
+                bot_ids,
+            )
+
+            stats: Dict[int, Dict[str, float]] = {}
+            for row in cursor.fetchall():
+                stats[int(row["bot_id"])] = {
+                    "total_reviews": float(row["total_reviews"] or 0),
+                    "average_rating": float(round(row["avg_rating"], 2) if row["avg_rating"] else 0.0),
+                }
+            return stats
+        except Exception as e:
+            print(f"Error reading bulk bot review stats: {e}")
+            return {}
 
 
 class BotCategoryModel:
