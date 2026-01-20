@@ -1,234 +1,43 @@
-from database import init_db
-from models import ProductModel, UserModel, BotModel
-import json
+import argparse
+import secrets
+
+from database import init_db, get_db
+from models import UserModel, BotModel
+
+
+def _bot_exists_for_creator(creator_id: int, name: str) -> bool:
+    conn = get_db()
+    cursor = conn.cursor()
+    cursor.execute(
+        "SELECT id FROM bots WHERE creator_id = ? AND name = ? LIMIT 1",
+        (creator_id, name),
+    )
+    return cursor.fetchone() is not None
+
 
 def seed_products():
-    init_db()
-
-    products = [
-        {
-            "name": "Wireless Bluetooth Headphones",
-            "description": "Premium noise-cancelling wireless headphones with 30-hour battery life",
-            "price": 89.99,
-            "category": "Electronics",
-            "stock": 50,
-            "image_url": "https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=500"
-        },
-        {
-            "name": "Smart Watch Series 5",
-            "description": "Feature-rich smartwatch with health tracking and GPS",
-            "price": 299.99,
-            "category": "Electronics",
-            "stock": 30,
-            "image_url": "https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=500"
-        },
-        {
-            "name": "Laptop Stand Aluminum",
-            "description": "Ergonomic aluminum laptop stand with adjustable height",
-            "price": 45.99,
-            "category": "Accessories",
-            "stock": 100,
-            "image_url": "https://images.unsplash.com/photo-1527864550417-7fd91fc51a46?w=500"
-        },
-        {
-            "name": "USB-C Hub 7-in-1",
-            "description": "Multi-port USB-C hub with HDMI, USB 3.0, and SD card reader",
-            "price": 39.99,
-            "category": "Accessories",
-            "stock": 75,
-            "image_url": "https://images.unsplash.com/photo-1625948515291-69613efd103f?w=500"
-        },
-        {
-            "name": "Mechanical Keyboard RGB",
-            "description": "Gaming mechanical keyboard with customizable RGB lighting",
-            "price": 129.99,
-            "category": "Electronics",
-            "stock": 40,
-            "image_url": "https://images.unsplash.com/photo-1511467687858-23d96c32e4ae?w=500"
-        },
-        {
-            "name": "Wireless Mouse Ergonomic",
-            "description": "Comfortable wireless mouse with precision tracking",
-            "price": 34.99,
-            "category": "Accessories",
-            "stock": 120,
-            "image_url": "https://images.unsplash.com/photo-1527814050087-3793815479db?w=500"
-        },
-        {
-            "name": "4K Webcam Pro",
-            "description": "Professional 4K webcam with auto-focus and noise reduction",
-            "price": 149.99,
-            "category": "Electronics",
-            "stock": 25,
-            "image_url": "https://images.unsplash.com/photo-1587588354456-ae376af71a25?w=500"
-        },
-        {
-            "name": "Portable SSD 1TB",
-            "description": "High-speed portable SSD with USB-C connection",
-            "price": 119.99,
-            "category": "Storage",
-            "stock": 60,
-            "image_url": "https://images.unsplash.com/photo-1531492746076-161ca9bcad58?w=500"
-        },
-        {
-            "name": "Phone Stand Adjustable",
-            "description": "Universal phone stand with adjustable viewing angles",
-            "price": 19.99,
-            "category": "Accessories",
-            "stock": 150,
-            "image_url": "https://images.unsplash.com/photo-1598327105666-5b89351aff97?w=500"
-        },
-        {
-            "name": "LED Desk Lamp",
-            "description": "Smart LED desk lamp with touch controls and timer",
-            "price": 54.99,
-            "category": "Accessories",
-            "stock": 80,
-            "image_url": "https://images.unsplash.com/photo-1507473885765-e6ed057f782c?w=500"
-        },
-        {
-            "name": "Laptop Sleeve 15 inch",
-            "description": "Waterproof laptop sleeve with extra pockets",
-            "price": 24.99,
-            "category": "Accessories",
-            "stock": 200,
-            "image_url": "https://images.unsplash.com/photo-1517502166878-35c93a0072f0?w=500"
-        },
-        {
-            "name": "Wireless Charger Pad",
-            "description": "Fast wireless charging pad compatible with all Qi devices",
-            "price": 29.99,
-            "category": "Electronics",
-            "stock": 90,
-            "image_url": "https://images.unsplash.com/photo-1591290619762-d2c5ab610327?w=500"
-        },
-        {
-            "name": "Monitor Screen Protector",
-            "description": "Anti-glare screen protector for 24-inch monitors",
-            "price": 32.99,
-            "category": "Accessories",
-            "stock": 70,
-            "image_url": "https://images.unsplash.com/photo-1551033406-611cf9a28f67?w=500"
-        },
-        {
-            "name": "Cable Management Box",
-            "description": "Organize cables and power strips in style",
-            "price": 22.99,
-            "category": "Accessories",
-            "stock": 110,
-            "image_url": "https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=500"
-        },
-        {
-            "name": "Bluetooth Speaker Portable",
-            "description": "Waterproof portable speaker with 12-hour battery",
-            "price": 69.99,
-            "category": "Electronics",
-            "stock": 55,
-            "image_url": "https://images.unsplash.com/photo-1608043152269-423dbba4e7e1?w=500"
-        },
-        {
-            "name": "Screen Cleaning Kit",
-            "description": "Professional screen cleaning solution and microfiber cloth",
-            "price": 14.99,
-            "category": "Accessories",
-            "stock": 180,
-            "image_url": "https://images.unsplash.com/photo-1584433144859-1fc3ab64a957?w=500"
-        },
-        {
-            "name": "Gaming Mouse Pad XXL",
-            "description": "Extra-large gaming mouse pad with anti-slip base",
-            "price": 27.99,
-            "category": "Accessories",
-            "stock": 95,
-            "image_url": "https://images.unsplash.com/photo-1580927752452-89d86da3fa0a?w=500"
-        },
-        {
-            "name": "External Hard Drive 2TB",
-            "description": "Reliable external HDD for backup and storage",
-            "price": 79.99,
-            "category": "Storage",
-            "stock": 45,
-            "image_url": "https://images.unsplash.com/photo-1531492746076-161ca9bcad58?w=500"
-        },
-        {
-            "name": "Drawing Tablet Digital",
-            "description": "Professional drawing tablet with pressure sensitivity",
-            "price": 199.99,
-            "category": "Electronics",
-            "stock": 20,
-            "image_url": "https://images.unsplash.com/photo-1577083552431-6e5fd01988ec?w=500"
-        },
-        {
-            "name": "Webcam Privacy Cover",
-            "description": "Sliding privacy cover for laptop and desktop webcams",
-            "price": 9.99,
-            "category": "Accessories",
-            "stock": 250,
-            "image_url": "https://images.unsplash.com/photo-1593642632823-8f785ba67e45?w=500"
-        },
-        {
-            "name": "HDMI Cable 6ft",
-            "description": "High-speed HDMI 2.1 cable supporting 4K@120Hz",
-            "price": 16.99,
-            "category": "Accessories",
-            "stock": 140,
-            "image_url": "https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=500"
-        },
-        {
-            "name": "Ring Light 10 inch",
-            "description": "LED ring light with tripod for photography and videos",
-            "price": 44.99,
-            "category": "Electronics",
-            "stock": 65,
-            "image_url": "https://images.unsplash.com/photo-1516975080664-ed2fc6a32937?w=500"
-        },
-        {
-            "name": "Power Bank 20000mAh",
-            "description": "High-capacity power bank with fast charging",
-            "price": 49.99,
-            "category": "Electronics",
-            "stock": 85,
-            "image_url": "https://images.unsplash.com/photo-1609091839311-d5365f9ff1c5?w=500"
-        },
-        {
-            "name": "Headphone Stand Wood",
-            "description": "Premium wooden headphone stand with cable holder",
-            "price": 35.99,
-            "category": "Accessories",
-            "stock": 75,
-            "image_url": "https://images.unsplash.com/photo-1545539904-c9c1af326ff8?w=500"
-        },
-        {
-            "name": "USB Flash Drive 128GB",
-            "description": "High-speed USB 3.0 flash drive with metal casing",
-            "price": 24.99,
-            "category": "Storage",
-            "stock": 160,
-            "image_url": "https://images.unsplash.com/photo-1624823183493-ed5832f48f18?w=500"
-        }
-    ]
-
-    print("Seeding products...")
-    for product in products:
-        ProductModel.create(**product)
-
-    print(f"Successfully seeded {len(products)} products")
+    print("Skipping product seeding (legacy product catalog removed from this script).")
 
 
-def seed_bots():
+def seed_bots(creator_email: str, creator_name: str, creator_password: str | None = None):
     """Seed sample bots for demonstration"""
     print("Seeding bots...")
 
-    # Create demo user if not exists
-    demo_user = UserModel.get_by_email("demo@example.com")
+    # Create seed creator if not exists
+    demo_user = UserModel.get_by_email(creator_email)
     if not demo_user:
+        generated_password = creator_password or secrets.token_urlsafe(12)
         user_id = UserModel.create(
-            email="demo@example.com",
-            password="password123",
-            full_name="Demo Bot Creator"
+            email=creator_email,
+            password=generated_password,
+            full_name=creator_name
         )
+        print(f"  ✓ Created seed creator: {creator_email}")
+        if not creator_password:
+            print(f"  ! Generated creator password: {generated_password}")
     else:
         user_id = demo_user["id"]
+        print(f"  - Using existing creator: {creator_email}")
 
     bots = [
         {
@@ -368,14 +177,51 @@ def seed_bots():
         }
     ]
 
+    created_count = 0
+    skipped_count = 0
     for bot in bots:
+        if _bot_exists_for_creator(bot["creator_id"], bot["name"]):
+            skipped_count += 1
+            print(f"  - Skipped existing bot: {bot['name']}")
+            continue
+
         bot_id = BotModel.create(**bot)
         if bot_id:
+            created_count += 1
             print(f"  ✓ Created bot: {bot['name']}")
 
-    print(f"Successfully seeded {len(bots)} bots")
+    print(f"Bot seeding complete. Created: {created_count}, skipped existing: {skipped_count}")
 
 
 if __name__ == "__main__":
-    seed_products()
-    seed_bots()
+    parser = argparse.ArgumentParser(description="Seed backend demo data")
+    parser.add_argument(
+        "--creator-email",
+        required=True,
+        help="Email for bot creator account used during seeding",
+    )
+    parser.add_argument(
+        "--creator-name",
+        default="Bot Seed Creator",
+        help="Full name for bot creator account used during seeding",
+    )
+    parser.add_argument(
+        "--creator-password",
+        default=None,
+        help="Optional password for new creator account; if omitted, a secure password is generated",
+    )
+    parser.add_argument(
+        "--with-products",
+        action="store_true",
+        help="Run legacy product seeding placeholder (currently no-op)",
+    )
+    args = parser.parse_args()
+
+    init_db()
+    if args.with_products:
+        seed_products()
+    seed_bots(
+        creator_email=args.creator_email,
+        creator_name=args.creator_name,
+        creator_password=args.creator_password,
+    )
