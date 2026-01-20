@@ -1,9 +1,18 @@
 from fastapi import APIRouter, HTTPException, status, Depends
 from schemas import UserRegister, UserLogin, TokenResponse, UserResponse, UserUpdateRequest
-from models import UserModel
+from models import UserModel, RoleModel
 from middleware.auth import create_access_token, get_current_user_id
 
 router = APIRouter(prefix="/api/auth", tags=["auth"])
+
+
+def _build_user_response(user_id: int) -> UserResponse:
+    """Return a UserResponse that always includes the user's roles."""
+    user = UserModel.get_by_id(user_id)
+    if not user:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
+    roles = RoleModel.get_user_roles(user_id)
+    return UserResponse(**{**user, "roles": roles})
 
 @router.post("/register", response_model=TokenResponse, status_code=status.HTTP_201_CREATED)
 async def register(user_data: UserRegister):
@@ -26,12 +35,11 @@ async def register(user_data: UserRegister):
             detail="Failed to create user"
         )
 
-    user = UserModel.get_by_id(user_id)
     access_token = create_access_token(user_id)
 
     return TokenResponse(
         access_token=access_token,
-        user=UserResponse(**user)
+        user=_build_user_response(user_id)
     )
 
 @router.post("/login", response_model=TokenResponse)
@@ -45,11 +53,10 @@ async def login(credentials: UserLogin):
         )
 
     access_token = create_access_token(user["id"])
-    user_response = UserModel.get_by_id(user["id"])
 
     return TokenResponse(
         access_token=access_token,
-        user=UserResponse(**user_response)
+        user=_build_user_response(user["id"])
     )
 
 @router.get("/profile/{user_id}", response_model=UserResponse)
@@ -60,14 +67,7 @@ async def get_profile(user_id: int, current_user_id: int = Depends(get_current_u
             detail="Not authorized to view this profile"
         )
 
-    user = UserModel.get_by_id(user_id)
-    if not user:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="User not found"
-        )
-
-    return UserResponse(**user)
+    return _build_user_response(user_id)
 
 @router.get("/check-email")
 async def check_email(email: str):
@@ -104,7 +104,7 @@ async def update_profile(
         full_name = None
 
     if email is None and full_name is None:
-        return UserResponse(**user)
+        return _build_user_response(current_user_id)
 
     success = UserModel.update(current_user_id, full_name=full_name, email=email)
     if not success:
@@ -113,5 +113,4 @@ async def update_profile(
             detail="Failed to update profile"
         )
 
-    updated_user = UserModel.get_by_id(current_user_id)
-    return UserResponse(**updated_user)
+    return _build_user_response(current_user_id)
