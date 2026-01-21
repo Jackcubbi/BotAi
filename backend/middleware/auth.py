@@ -46,6 +46,26 @@ async def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(s
     return user
 
 
+# Permissions automatically granted to legacy admin accounts (id=1 or @admin.com)
+# until the account is properly Role-assigned via the admin panel.
+_LEGACY_ADMIN_PERMISSIONS = {
+    "admin.access",
+    "analytics.read",
+    "users.read",
+    "users.update",
+    "users.delete",
+    "users.roles.manage",
+    "products.manage",
+    "orders.read",
+    "orders.manage",
+    "bots.manage",
+    "support.manage",
+    "system.manage",
+    "profile.read",
+    "profile.update",
+}
+
+
 def require_permission(permission_name: str):
     async def permission_dependency(current_user_id: int = Depends(get_current_user_id)) -> int:
         if RoleModel.user_has_permission(current_user_id, permission_name):
@@ -53,7 +73,7 @@ def require_permission(permission_name: str):
 
         user = UserModel.get_by_id(current_user_id)
         is_legacy_admin = bool(user and (user.get("id") == 1 or (user.get("email") or "").endswith("@admin.com")))
-        if permission_name == "admin.access" and is_legacy_admin:
+        if is_legacy_admin and permission_name in _LEGACY_ADMIN_PERMISSIONS:
             return current_user_id
 
         raise HTTPException(
