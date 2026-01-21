@@ -3,6 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from slowapi import _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
 from contextlib import asynccontextmanager
+import os
 
 from config import CORS_ORIGINS, PORT
 from database import init_db, close_db
@@ -12,13 +13,31 @@ from routes import auth_routes, product_routes, order_routes, admin_routes, bot_
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     print(f"Starting FastAPI server on port {PORT}...")
-    init_db()
-    print("Database initialized successfully")
+    try:
+        init_db()
+        print("Database initialized successfully")
+    except Exception as e:
+        print(f"Database initialization failed: {e}")
     yield
-    close_db()
-    print("Database connection closed")
+    try:
+        close_db()
+        print("Database connection closed")
+    except Exception as e:
+        print(f"Database close failed: {e}")
 
-app = FastAPI(title="E-Commerce API", version="1.0.0", lifespan=lifespan)
+
+enable_lifespan = os.getenv("ENABLE_APP_LIFESPAN", "0") == "1"
+
+if enable_lifespan:
+    app = FastAPI(title="E-Commerce API", version="1.0.0", lifespan=lifespan)
+else:
+    print("FastAPI lifespan disabled (set ENABLE_APP_LIFESPAN=1 to enable)")
+    app = FastAPI(title="E-Commerce API", version="1.0.0")
+    try:
+        init_db()
+        print("Database initialized successfully")
+    except Exception as e:
+        print(f"Database initialization failed: {e}")
 
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
