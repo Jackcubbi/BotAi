@@ -3,7 +3,6 @@ AI Service for OpenAI and other LLM integrations
 Handles chat completions, token counting, and error handling
 """
 
-import os
 import base64
 from typing import List, Dict, Optional, Tuple
 import openai
@@ -12,17 +11,9 @@ from openai import OpenAI
 
 class AIService:
     def __init__(self):
-        # Initialize OpenAI client
-        self.default_api_key = os.getenv("OPENAI_API_KEY")
-        if not self.default_api_key:
-            print("WARNING: OPENAI_API_KEY not set. AI features will not work.")
-            self.client = None
-        else:
-            try:
-                self.client = OpenAI(api_key=self.default_api_key)
-            except Exception as e:
-                print(f"WARNING: Failed to initialize default OpenAI client: {e}")
-                self.client = None
+        # No platform-level default key — each bot must supply its own API key
+        self.default_api_key = None
+        self.client = None
 
     def _get_provider_base_url(self, api_provider: str) -> Optional[str]:
         provider = (api_provider or "openai").lower()
@@ -33,7 +24,7 @@ class AIService:
         return None
 
     def _get_client(self, api_provider: str = "openai", api_key: Optional[str] = None) -> Optional[OpenAI]:
-        effective_api_key = (api_key or "").strip() or self.default_api_key
+        effective_api_key = (api_key or "").strip()
         if not effective_api_key:
             return None
 
@@ -75,7 +66,7 @@ class AIService:
         """
         client = self._get_client(api_provider=api_provider, api_key=api_key)
         if not client:
-            return None, None, "OpenAI API key not configured"
+            return None, None, "This bot has no API key configured. The creator must add an API key in the bot settings."
 
         try:
             response = client.chat.completions.create(
@@ -181,7 +172,7 @@ class AIService:
         """
         client = self._get_client(api_provider=api_provider, api_key=api_key)
         if not client:
-            return None, None, None, "API key not configured"
+            return None, None, None, "This bot has no API key configured. The creator must add an API key in the bot settings."
 
         try:
             response = client.images.generate(
@@ -220,7 +211,7 @@ class AIService:
         """
         client = self._get_client(api_provider=api_provider, api_key=api_key)
         if not client:
-            return None, None, "API key not configured"
+            return None, None, "This bot has no API key configured. The creator must add an API key in the bot settings."
 
         effective_model = model
         if "audio" not in (model or "") and "tts" not in (model or ""):
@@ -262,7 +253,7 @@ class AIService:
         """
         client = self._get_client(api_provider=api_provider, api_key=api_key)
         if not client:
-            return None, None, None, "API key not configured"
+            return None, None, None, "This bot has no API key configured. The creator must add an API key in the bot settings."
 
         # Video generation availability varies by provider and model.
         # Keep this defensive and surface actionable errors instead of crashing.
