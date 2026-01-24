@@ -1,0 +1,15 @@
+RewriteEngine On
+
+# Never rewrite backend API requests
+RewriteRule ^api/?$ - [L,NC]
+RewriteRule ^api/ - [L,NC]
+
+# Optional safety: don't rewrite common well-known or static files
+RewriteRule ^(robots\.txt|favicon\.ico)$ - [L,NC]
+
+# Serve existing files/directories normally
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+
+# React SPA fallback
+RewriteRule ^ index.html [L]
