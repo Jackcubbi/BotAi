@@ -46,25 +46,31 @@ import AuditLogs from "../pages/admin/AuditLogs";
 // import ProductList from "../pages/admin/ProductList";
 // import ProductForm from "../pages/admin/ProductForm";
 
+// Route guards are defined here at module scope — NOT inside AppContent.
+// Defining them inside the component body creates a new function reference on
+// every render, causing React to treat each guard as a brand-new component
+// type and remount it. That forces React Router to dispatch a navigation action
+// against an uninitialised router state, producing the
+// "Cannot read properties of undefined (reading 'payload')" TypeError in core.js.
+const RequirePermission = ({ permission, children }: { permission: string; children: React.ReactNode }) => {
+  const { user, isLoading } = useAuth();
+  if (isLoading) return null;
+  if (!user) return <Navigate to="/login" replace />;
+  if (!hasPermission(user as any, permission)) return <Navigate to="/" replace />;
+  return <>{children}</>;
+};
+
+const RequireAnyPermission = ({ permissions, children }: { permissions: string[]; children: React.ReactNode }) => {
+  const { user, isLoading } = useAuth();
+  if (isLoading) return null;
+  if (!user) return <Navigate to="/login" replace />;
+  if (!hasAnyPermission(user as any, permissions)) return <Navigate to="/" replace />;
+  return <>{children}</>;
+};
+
 export default function AppContent() {
   // Monitor session for auto-logout
   useSessionMonitor();
-
-  const { user, isLoading } = useAuth();
-
-  const RequirePermission = ({ permission, children }: { permission: string; children: React.ReactNode }) => {
-    if (isLoading) return null;
-    if (!user) return <Navigate to="/login" replace />;
-    if (!hasPermission(user as any, permission)) return <Navigate to="/" replace />;
-    return <>{children}</>;
-  };
-
-  const RequireAnyPermission = ({ permissions, children }: { permissions: string[]; children: React.ReactNode }) => {
-    if (isLoading) return null;
-    if (!user) return <Navigate to="/login" replace />;
-    if (!hasAnyPermission(user as any, permissions)) return <Navigate to="/" replace />;
-    return <>{children}</>;
-  };
 
   return (
     <ErrorBoundary>
