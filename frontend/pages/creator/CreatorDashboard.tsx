@@ -20,7 +20,7 @@ interface BotPreview {
   category: string;
   is_public: boolean;
   total_conversations: number;
-  average_rating: number;
+  average_rating: number | string | null;
   total_reviews: number;
   created_at: string;
 }
@@ -48,7 +48,11 @@ export default function CreatorDashboard() {
 
       if (response.success && response.data) {
         const data = response.data as any;
-        const bots = data.bots || [];
+        const bots = (data.bots || []).map((bot: any) => ({
+          ...bot,
+          total_conversations: Number(bot?.total_conversations || 0),
+          average_rating: Number(bot?.average_rating || 0),
+        }));
         setRecentBots(bots);
 
         // Calculate stats from bots
@@ -260,7 +264,7 @@ export default function CreatorDashboard() {
                   </div>
                   <div className="flex items-center gap-1">
                     <Star className="w-4 h-4 fill-botai-star text-botai-star" />
-                    <span>{bot.average_rating > 0 ? bot.average_rating.toFixed(1) : 'New'}</span>
+                    <span>{Number(bot.average_rating) > 0 ? Number(bot.average_rating).toFixed(1) : 'New'}</span>
                   </div>
                 </div>
 
