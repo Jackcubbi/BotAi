@@ -68,6 +68,8 @@ export default function CreatorLayout() {
     return null;
   }
 
+  const userInitial = ((user.email && user.email.trim().charAt(0)) || 'U').toUpperCase();
+
   return (
     <div className="min-h-screen bg-botai-grey-bg">
       {/* Mobile sidebar backdrop */}
@@ -128,7 +130,7 @@ export default function CreatorLayout() {
           <div className="p-4 border-t border-botai-grey-line">
             <div className="flex items-center gap-3 px-4 py-3 mb-2 text-white">
               <div className="w-10 h-10 rounded-full bg-botai-accent-green flex items-center justify-center text-botai-black font-bold">
-                {user.email?.[0].toUpperCase()}
+                {userInitial}
               </div>
               <div className="flex-1 min-w-0">
                 <p className="font-noto-sans font-semibold text-sm truncate">
