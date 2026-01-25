@@ -1,11 +1,13 @@
 import React, { useEffect, useState } from 'react';
-import { Package, DollarSign, Users, ShoppingBag, TrendingUp, AlertCircle } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import { Bot, Globe, Users, MessageSquare, TrendingUp, Shield } from 'lucide-react';
+import { apiClient } from '../../lib/api';
 
 interface Stats {
-  total_products: number;
-  total_orders: number;
-  low_stock_products: number;
   total_users: number;
+  total_bots: number;
+  public_bots: number;
+  total_orders: number;
 }
 
 export default function AdminDashboard() {
@@ -19,19 +21,12 @@ export default function AdminDashboard() {
 
   const fetchStats = async () => {
     try {
-      const token = localStorage.getItem('auth_token');
-      const response = await fetch('/api/admin/stats', {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to fetch stats');
+      const response = await apiClient.getAdminStats();
+      if (response.success && response.data) {
+        setStats(response.data as Stats);
+      } else {
+        setError(response.error || 'Failed to load stats');
       }
-
-      const data = await response.json();
-      setStats(data);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load stats');
     } finally {
@@ -57,27 +52,27 @@ export default function AdminDashboard() {
 
   const statCards = [
     {
-      title: 'Total Products',
-      value: stats?.total_products || 0,
-      icon: Package,
-      color: 'bg-botai-dark',
-    },
-    {
-      title: 'Total Orders',
-      value: stats?.total_orders || 0,
-      icon: ShoppingBag,
-      color: 'bg-botai-dark',
-    },
-    {
       title: 'Total Users',
-      value: stats?.total_users || 0,
+      value: stats?.total_users ?? 0,
       icon: Users,
       color: 'bg-botai-dark',
     },
     {
-      title: 'Low Stock Items',
-      value: stats?.low_stock_products || 0,
-      icon: AlertCircle,
+      title: 'Total Bots',
+      value: stats?.total_bots ?? 0,
+      icon: Bot,
+      color: 'bg-botai-dark',
+    },
+    {
+      title: 'Public Bots',
+      value: stats?.public_bots ?? 0,
+      icon: Globe,
+      color: 'bg-botai-dark',
+    },
+    {
+      title: 'Private Bots',
+      value: (stats?.total_bots ?? 0) - (stats?.public_bots ?? 0),
+      icon: Shield,
       color: 'bg-botai-dark',
     },
   ];
@@ -89,7 +84,7 @@ export default function AdminDashboard() {
           Dashboard
         </h1>
         <p className="font-noto-sans text-botai-text">
-          Welcome to your admin dashboard
+          Platform overview
         </p>
       </div>
 
@@ -125,41 +120,40 @@ export default function AdminDashboard() {
           Quick Actions
         </h2>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <a
-            href="/admin/products/new"
+          <Link
+            to="/admin/bots"
             className="flex items-center gap-3 p-4 border-2 border-botai-grey-line rounded-lg hover:border-botai-accent-green transition-colors"
           >
-            <Package className="w-6 h-6 text-botai-accent-green" />
+            <Bot className="w-6 h-6 text-botai-accent-green" />
             <div>
-              <p className="font-noto-sans font-semibold text-botai-dark">Add New Product</p>
-              <p className="text-sm text-botai-text">Create a new product listing</p>
+              <p className="font-noto-sans font-semibold text-botai-dark">Manage Bots</p>
+              <p className="text-sm text-botai-text">View and moderate all bots</p>
             </div>
-          </a>
+          </Link>
 
-          <a
-            href="/admin/orders"
+          <Link
+            to="/admin/users"
             className="flex items-center gap-3 p-4 border-2 border-botai-grey-line rounded-lg hover:border-botai-accent-green transition-colors"
           >
-            <ShoppingBag className="w-6 h-6 text-botai-accent-green" />
+            <Users className="w-6 h-6 text-botai-accent-green" />
             <div>
-              <p className="font-noto-sans font-semibold text-botai-dark">View Orders</p>
-              <p className="text-sm text-botai-text">Manage customer orders</p>
+              <p className="font-noto-sans font-semibold text-botai-dark">Manage Users</p>
+              <p className="text-sm text-botai-text">View users and assign roles</p>
             </div>
-          </a>
+          </Link>
 
-          <a
-            href="/admin/products"
+          <Link
+            to="/admin/support-chat"
             className="flex items-center gap-3 p-4 border-2 border-botai-grey-line rounded-lg hover:border-botai-accent-green transition-colors"
           >
-            <AlertCircle className="w-6 h-6 text-botai-accent-green" />
+            <MessageSquare className="w-6 h-6 text-botai-accent-green" />
             <div>
-              <p className="font-noto-sans font-semibold text-botai-dark">Low Stock Alert</p>
-              <p className="text-sm text-botai-text">Check products running low</p>
+              <p className="font-noto-sans font-semibold text-botai-dark">Support Chat</p>
+              <p className="text-sm text-botai-text">Respond to user support tickets</p>
             </div>
-          </a>
+          </Link>
         </div>
       </div>
     </div>
   );
 }
-
