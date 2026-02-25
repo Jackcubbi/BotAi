@@ -143,17 +143,18 @@ This project does not have a specified license. Please contact the author for mo
 
 ## Screenshots
 
-![alt text](admin_bot_management.png)
-![alt text](my_bots.png)
-![alt text](admin_dashboard.png)
-![alt text](admin_support.png)
-![alt text](admin_users_management.png)
-![alt text](create_new.png)
-![alt text](creator_dashboard.png)
-![alt text](my_account_support.png)
-![alt text](my_account1.png)
-![alt text](my_account2.png)
-![alt text](my_account3.png)
+<img width="1885" height="623" alt="my_bots" src="https://github.com/user-attachments/assets/b75493a0-6c65-4cde-a53d-6c43d823869a" />
+<img width="1282" height="844" alt="my_account3" src="https://github.com/user-attachments/assets/fff9e2cd-210a-4552-90ce-f63cc8a1c69d" />
+<img width="1276" height="843" alt="my_account2" src="https://github.com/user-attachments/assets/f0061d0a-085a-4271-b1b9-122dcdd5f65e" />
+<img width="1280" height="829" alt="my_account1" src="https://github.com/user-attachments/assets/51c2145e-e744-4f70-8700-e30577dab94c" />
+<img width="1270" height="835" alt="my_account_support" src="https://github.com/user-attachments/assets/d073eb62-d788-491a-93fa-3a189f3028d7" />
+<img width="1903" height="916" alt="creator_dashboard" src="https://github.com/user-attachments/assets/8cb52436-35eb-472e-a8a9-bc9b3fc476e1" />
+<img width="1899" height="949" alt="create_new" src="https://github.com/user-attachments/assets/bfc854c4-519c-41b6-a26e-a2b9b86c1ca8" />
+<img width="1898" height="944" alt="admin_users_management" src="https://github.com/user-attachments/assets/b3b6ef58-5b29-4ff5-b010-995a87930b09" />
+<img width="1911" height="945" alt="admin_support" src="https://github.com/user-attachments/assets/7754a3d9-ae0c-4987-be8a-0a601aa166e0" />
+<img width="1909" height="939" alt="admin_dashboard" src="https://github.com/user-attachments/assets/f17fb8a7-5a73-4777-b368-7a6eea89577b" />
+<img width="1903" height="950" alt="admin_bot_management" src="https://github.com/user-attachments/assets/6a482d4b-b389-47c9-afd1-ee894e64bee1" />
+
 
 ## Author
 
